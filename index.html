@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Absensi Digital V3</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+  <link rel="stylesheet" href="css/style.css">
+
+  <link rel="manifest" href="manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js');
+      });
+    }
+  </script>
+</head>
+
+<body class="bg-gray-50 font-sans m-0 p-0" style="margin: 0; padding: 0; width: 100vw; overflow-x: hidden;">
+  <!-- Mobile Menu Toggle Button -->
+  <button id="mobile-menu-toggle" class="fixed top-4 left-4 z-50 bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hidden">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+    </svg>
+  </button>
+
+  <!-- Mobile Menu Overlay -->
+  <div id="mobile-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+
+  <!-- Navigation -->
+  <nav id="menu" class="hidden fixed left-0 top-0 w-72 h-full gradient-bg text-white p-6 shadow-2xl custom-scrollbar overflow-y-auto z-50 transform transition-transform duration-300 ease-in-out">
+    <div class="mb-8 text-center animate-bounce-in">
+      <div class="relative inline-block mb-6">
+        <div class="absolute inset-0 bg-white rounded-full opacity-20 pulse-ring"></div>
+        <img src="https://via.placeholder.com/80" alt="Logo Kelas" class="w-20 h-20 rounded-full mx-auto object-cover border-4 border-white shadow-lg floating" id="logo-kelas">
+        <button onclick="document.getElementById('logo-upload').click()" class="absolute bottom-0 right-0 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm hover:scale-110 transition-transform shadow-lg">
+          📷
+        </button>
+        <input type="file" id="logo-upload" accept="image/*" class="hidden" onchange="uploadLogoKelas(this)">
+      </div>
+      <h2 class="text-2xl font-bold bg-gradient-to-r from-yellow-300 to-pink-300 bg-clip-text text-transparent" data-editable="className">Kelas 7 Al Karim</h2>
+      <p class="text-sm opacity-80 mt-1" data-editable="systemTitle">Digital Attendance System</p>
+    </div>
+    
+    <div class="space-y-3">
+      <button onclick="showSection('home')" class="menu-item w-full text-left p-4 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all duration-300 flex items-center space-x-3 group">
+        <span class="text-2xl group-hover:scale-110 transition-transform">🏠</span>
+        <span class="font-medium" data-editable="menuItems.home">Halaman Utama</span>
+      </button>
+      
+      <button onclick="showSection('input-siswa')" class="menu-item w-full text-left p-4 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all duration-300 flex items-center space-x-3 group">
+        <span class="text-2xl group-hover:scale-110 transition-transform">👥</span>
+        <span class="font-medium" data-editable="menuItems.inputSiswa">Input Data Siswa</span>
+      </button>
+      
+      <button onclick="showSection('qr-siswa')" class="menu-item w-full text-left p-4 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all duration-300 flex items-center space-x-3 group">
+        <span class="text-2xl group-hover:scale-110 transition-transform">📱</span>
+        <span class="font-medium" data-editable="menuItems.qrSiswa">QR Code Siswa</span>
+      </button>
+      
+      <button onclick="showSection('absensi')" class="menu-item w-full text-left p-4 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all duration-300 flex items-center space-x-3 group">
+        <span class="text-2xl group-hover:scale-110 transition-transform">✅</span>
+        <span class="font-medium" data-editable="menuItems.absensi">Absensi Harian</span>
+      </button>
+      
+      <button onclick="showSection('sholat')" class="menu-item w-full text-left p-4 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all duration-300 flex items-center space-x-3 group">
+        <span class="text-2xl group-hover:scale-110 transition-transform">🕌</span>
+        <span class="font-medium" data-editable="menuItems.sholat">Kontrol Sholat</span>
+      </button>
+      
+      <button onclick="showSection('dashboard')" class="menu-item w-full text-left p-4 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all duration-300 flex items-center space-x-3 group">
+        <span class="text-2xl group-hover:scale-110 transition-transform">📊</span>
+        <span class="font-medium" data-editable="menuItems.dashboard">Dashboard</span>
+      </button>
+      
+      <div class="border-t border-white border-opacity-20 my-4"></div>
+      
+      <button onclick="exportRekap()" class="menu-item w-full text-left p-4 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all duration-300 flex items-center space-x-3 group">
+        <span class="text-2xl group-hover:scale-110 transition-transform">📄</span>
+        <span class="font-medium" data-editable="menuItems.exportRekap">Export Rekap</span>
+      </button>
+      
+      <button onclick="dataManager.exportBackup()" class="menu-item w-full text-left p-4 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all duration-300 flex items-center space-x-3 group">
+        <span class="text-2xl group-hover:scale-110 transition-transform">💾</span>
+        <span class="font-medium" data-editable="menuItems.exportBackup">Export Backup</span>
+      </button>
+      
+      <button onclick="document.getElementById('import-backup').click()" class="menu-item w-full text-left p-4 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all duration-300 flex items-center space-x-3 group">
+        <span class="text-2xl group-hover:scale-110 transition-transform">📥</span>
+        <span class="font-medium" data-editable="menuItems.importBackup">Import Backup</span>
+      </button>
+      <input type="file" id="import-backup" accept=".json" class="hidden" onchange="dataManager.importBackup(this.files[0])">
+      
+      <div class="border-t border-white border-opacity-20 my-4"></div>
+      
+      <button onclick="toggleDarkMode()" class="menu-item w-full text-left p-4 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all duration-300 flex items-center space-x-3 group">
+        <span class="text-2xl group-hover:scale-110 transition-transform">🌙</span>
+        <span class="font-medium" data-editable="menuItems.darkMode">Toggle Dark Mode</span>
+      </button>
+      
+      <button onclick="toggleEditMode()" class="menu-item w-full text-left p-4 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all duration-300 flex items-center space-x-3 group">
+        <span class="text-2xl group-hover:scale-110 transition-transform">✏️</span>
+        <span class="font-medium" id="edit-mode-text">Mode Edit Teks</span>
+      </button>
+      
+      <button onclick="logout()" class="menu-item w-full text-left p-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 transition-all duration-300 flex items-center space-x-3 group mt-6 shadow-lg">
+        <span class="text-2xl group-hover:scale-110 transition-transform">🚪</span>
+        <span class="font-medium">Logout</span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="ml-0" id="main-content">
+    <!-- Login -->
+    <section id="login" class="min-h-screen flex items-center justify-center gradient-bg relative overflow-hidden">
+      <!-- Animated Background Elements -->
+      <div class="absolute inset-0">
+        <div class="absolute top-10 left-10 w-20 h-20 bg-white bg-opacity-10 rounded-full floating"></div>
+        <div class="absolute top-32 right-20 w-16 h-16 bg-white bg-opacity-10 rounded-full floating" style="animation-delay: -1s;"></div>
+        <div class="absolute bottom-20 left-32 w-24 h-24 bg-white bg-opacity-10 rounded-full floating" style="animation-delay: -2s;"></div>
+        <div class="absolute bottom-32 right-10 w-12 h-12 bg-white bg-opacity-10 rounded-full floating" style="animation-delay: -0.5s;"></div>
+      </div>
+      
+      <div class="glass-effect p-10 rounded-3xl shadow-2xl w-full max-w-md animate-slide-up relative z-10">
+        <div class="text-center mb-10">
+          <div class="relative inline-block mb-6">
+            <div class="w-20 h-20 bg-gradient-to-r from-yellow-400 to-pink-400 rounded-full flex items-center justify-center text-4xl mx-auto shadow-lg floating">
+              🎓
+            </div>
+            <div class="absolute inset-0 bg-white rounded-full opacity-20 pulse-ring"></div>
+          </div>
+          <h1 class="text-4xl font-bold text-white mb-3 bg-gradient-to-r from-yellow-300 to-pink-300 bg-clip-text text-transparent">Login Wali Kelas</h1>
+          <p class="text-white text-opacity-80 text-lg">Masuk ke sistem absensi digital</p>
+        </div>
+        
+        <div class="space-y-6">
+          <div class="relative">
+            <input type="text" id="username" placeholder="Username" class="w-full p-4 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-xl text-white placeholder-white placeholder-opacity-70 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent backdrop-blur-sm transition-all duration-300">
+          </div>
+          
+          <div class="relative">
+            <input type="password" id="password" placeholder="Password" class="w-full p-4 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-xl text-white placeholder-white placeholder-opacity-70 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent backdrop-blur-sm transition-all duration-300">
+          </div>
+          
+          <button onclick="login()" class="w-full bg-gradient-to-r from-yellow-400 to-pink-400 text-white p-4 rounded-xl hover:from-yellow-500 hover:to-pink-500 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 neon-glow">
+            <span class="flex items-center justify-center space-x-2">
+              <span>🚀</span>
+              <span>Login</span>
+            </span>
+          </button>
+        </div>
+        
+        <div class="mt-8 text-center">
+          <div class="bg-white bg-opacity-20 rounded-xl p-4 backdrop-blur-sm">
+            <p class="text-white text-opacity-90 text-sm font-medium mb-2">Demo Credentials:</p>
+            <p class="text-white text-opacity-80 text-sm">
+              <span class="font-mono bg-white bg-opacity-20 px-2 py-1 rounded">admin</span> / 
+              <span class="font-mono bg-white bg-opacity-20 px-2 py-1 rounded">password123</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Halaman Utama -->
+    <section id="home" class="hidden section-content p-8 ml-72 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen" style="margin: 0; padding: 0.5rem; width: 100%;">
+      <div class="max-w-7xl mx-auto" style="margin: 0; padding: 0; max-width: 100%;">
+        <div class="animate-fade-in mb-12">
+          <h1 class="text-5xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-4" data-editable="welcomeMessage">
+            Assalamu'alaikum, Selamat Datang
+          </h1>
+          <p class="text-2xl text-gray-600 font-medium"><span data-editable="teacherName">Ustadz Harris</span> 👋</p>
+          <p class="text-gray-500 mt-2">Sistem Absensi Digital - <span data-editable="className">Kelas 7 Al Karim</span></p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 dashboard-grid">
+          <div class="stat-card gradient-success p-8 rounded-2xl shadow-xl hover-lift animate-slide-up text-white">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold opacity-90 mb-2">Total Siswa</h3>
+                <p class="text-4xl font-bold" id="total-siswa">0</p>
+                <p class="text-sm opacity-80 mt-2">Siswa terdaftar</p>
+              </div>
+              <div class="text-5xl opacity-80 floating">
+                👥
+              </div>
+            </div>
+          </div>
+          
+          <div class="stat-card gradient-warning p-8 rounded-2xl shadow-xl hover-lift animate-slide-up text-white" style="animation-delay: 0.2s;">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold opacity-90 mb-2">Hadir Hari Ini</h3>
+                <p class="text-4xl font-bold" id="hadir-hari-ini">0</p>
+                <p class="text-sm opacity-80 mt-2">Siswa hadir</p>
+              </div>
+              <div class="text-5xl opacity-80 floating" style="animation-delay: -1s;">
+                ✅
+              </div>
+            </div>
+          </div>
+          
+          <div class="stat-card gradient-danger p-8 rounded-2xl shadow-xl hover-lift animate-slide-up text-white" style="animation-delay: 0.4s;">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold opacity-90 mb-2">Tidak Hadir</h3>
+                <p class="text-4xl font-bold" id="tidak-hadir">0</p>
+                <p class="text-sm opacity-80 mt-2">Siswa absen</p>
+              </div>
+              <div class="text-5xl opacity-80 floating" style="animation-delay: -2s;">
+                ❌
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prayer Times Section -->
+        <div class="glass-effect p-8 rounded-2xl shadow-xl hover-lift animate-slide-up mb-12" style="animation-delay: 0.8s;">
+          <div class="flex items-center mb-6">
+            <div class="text-4xl mr-4 floating">🕌</div>
+            <div>
+              <h2 class="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent mb-2">Jadwal Sholat Hari Ini</h2>
+              <p class="text-gray-600">Waktu sholat 5 waktu - <span class="prayer-location">Jakarta, Indonesia</span></p>
+              <p class="text-xs text-gray-500 mt-1">📍 Lokasi diperbarui otomatis berdasarkan GPS</p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div class="bg-white bg-opacity-50 p-4 rounded-xl text-center">
+              <div class="text-2xl mb-2">🌅</div>
+              <h3 class="font-semibold text-gray-800 mb-1">Subuh</h3>
+              <p class="text-lg font-bold text-blue-600" id="subuh-time">--:--</p>
+              <div class="mt-2">
+                <span class="text-xs px-2 py-1 rounded-full" id="subuh-status">Menunggu</span>
+              </div>
+            </div>
+            
+            <div class="bg-white bg-opacity-50 p-4 rounded-xl text-center">
+              <div class="text-2xl mb-2">☀️</div>
+              <h3 class="font-semibold text-gray-800 mb-1">Dzuhur</h3>
+              <p class="text-lg font-bold text-yellow-600" id="dzuhur-time">--:--</p>
+              <div class="mt-2">
+                <span class="text-xs px-2 py-1 rounded-full" id="dzuhur-status">Menunggu</span>
+              </div>
+            </div>
+            
+            <div class="bg-white bg-opacity-50 p-4 rounded-xl text-center">
+              <div class="text-2xl mb-2">🌤️</div>
+              <h3 class="font-semibold text-gray-800 mb-1">Ashar</h3>
+              <p class="text-lg font-bold text-orange-600" id="ashar-time">--:--</p>
+              <div class="mt-2">
+                <span class="text-xs px-2 py-1 rounded-full" id="ashar-status">Menunggu</span>
+              </div>
+            </div>
+            
+            <div class="bg-white bg-opacity-50 p-4 rounded-xl text-center">
+              <div class="text-2xl mb-2">🌅</div>
+              <h3 class="font-semibold text-gray-800 mb-1">Maghrib</h3>
+              <p class="text-lg font-bold text-red-600" id="maghrib-time">--:--</p>
+              <div class="mt-2">
+                <span class="text-xs px-2 py-1 rounded-full" id="maghrib-status">Menunggu</span>
+              </div>
+            </div>
+            
+            <div class="bg-white bg-opacity-50 p-4 rounded-xl text-center">
+              <div class="text-2xl mb-2">🌙</div>
+              <h3 class="font-semibold text-gray-800 mb-1">Isya</h3>
+              <p class="text-lg font-bold text-purple-600" id="isya-time">--:--</p>
+              <div class="mt-2">
+                <span class="text-xs px-2 py-1 rounded-full" id="isya-status">Menunggu</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-6 text-center">
+            <p class="text-sm text-gray-600">
+              <span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+              Waktu sholat akan diperbarui secara otomatis
+            </p>
+          </div>
+        </div>
+
+        <div class="glass-effect p-8 rounded-2xl shadow-xl hover-lift animate-slide-up" style="animation-delay: 0.6s;">
+          <div class="flex items-center mb-8">
+            <div class="relative mr-8">
+              <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full opacity-20 pulse-ring"></div>
+              <img src="https://via.placeholder.com/100" alt="Foto Wali Kelas" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg floating" id="wali-foto">
+              <button onclick="document.getElementById('foto-upload').click()" class="absolute bottom-0 right-0 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm hover:scale-110 transition-transform shadow-lg">
+                📷
+              </button>
+              <input type="file" id="foto-upload" accept="image/*" class="hidden" onchange="uploadWaliFoto(this)">
+            </div>
+            <div>
+              <h2 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2" id="wali-nama">Ustadz Harris</h2>
+              <p class="text-xl text-gray-700 font-medium">Kelas 7 Al Karim</p>
+              <p class="text-gray-500 mt-1 flex items-center">
+                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                Wali Kelas Aktif
+              </p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white bg-opacity-50 p-6 rounded-xl">
+              <h3 class="font-semibold text-gray-800 mb-3 flex items-center">
+                <span class="text-2xl mr-2">📊</span>
+                Quick Stats
+              </h3>
+              <div class="space-y-2 text-sm text-gray-600">
+                <p>• Sistem berjalan dengan baik</p>
+                <p>• Data tersimpan otomatis</p>
+                <p>• Backup tersedia</p>
+              </div>
+            </div>
+            
+            <div class="bg-white bg-opacity-50 p-6 rounded-xl">
+              <h3 class="font-semibold text-gray-800 mb-3 flex items-center">
+                <span class="text-2xl mr-2">🕐</span>
+                Waktu Sekarang
+              </h3>
+              <p class="text-lg font-medium text-gray-700" id="current-time"></p>
+              <p class="text-sm text-gray-500" id="current-date"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Input Data Siswa -->
+    <section id="input-siswa" class="hidden section-content p-8 ml-64" style="margin: 0; padding: 0.5rem; width: 100%;">
+      <div class="max-w-6xl mx-auto" style="margin: 0; padding: 0; max-width: 100%;">
+        <h1 class="text-4xl font-bold text-gray-800 mb-8" data-editable="sectionTitles.inputSiswa">Input Data Siswa</h1>
+        
+        <!-- Teacher Info Section -->
+        <div class="glass-effect p-6 rounded-2xl shadow-xl hover-lift animate-slide-up mb-8">
+          <div class="flex items-center">
+            <div class="relative mr-6">
+              <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full opacity-20 pulse-ring"></div>
+              <img src="https://via.placeholder.com/80" alt="Foto Wali Kelas" class="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg floating" id="wali-foto-input">
+              <button onclick="document.getElementById('foto-upload-input').click()" class="absolute bottom-0 right-0 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:scale-110 transition-transform shadow-lg">
+                📷
+              </button>
+              <input type="file" id="foto-upload-input" accept="image/*" class="hidden" onchange="uploadWaliFotoInput(this)">
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1" id="wali-nama-input">Ustadz Harris</h2>
+              <p class="text-lg text-gray-700 font-medium">Wali Kelas - <span data-editable="className">Kelas 7 Al Karim</span></p>
+              <p class="text-gray-500 mt-1 flex items-center text-sm">
+                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                Mengelola Data Siswa
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-xl shadow-lg card mb-8">
+          <h2 class="text-xl font-semibold mb-4">Tambah Siswa Baru</h2>
+          
+          <!-- Excel Import Section -->
+          <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+            <h3 class="font-semibold mb-2">Import dari Excel</h3>
+            <p class="text-sm text-gray-600 mb-3">Format Excel: Kolom A = Nama, Kolom B = Kelas (Foto akan menggunakan placeholder)</p>
+            <div class="flex gap-2">
+              <input type="file" id="excel-file" accept=".xlsx,.xls" class="flex-1 p-2 border border-gray-300 rounded-lg">
+              <button onclick="importExcel()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                Import Excel
+              </button>
+            </div>
+          </div>
+          
+          <!-- Manual Input Section -->
+          <form id="siswa-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 form-grid">
+            <input type="text" id="nama" data-placeholder="labels.namaSiswa" placeholder="Nama Siswa" required class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+            <input type="text" id="kelas" data-placeholder="labels.kelas" placeholder="Kelas" required class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+            <div class="relative">
+              <input type="file" id="foto-siswa" accept="image/*" class="hidden" onchange="previewFotoSiswa(this)">
+              <button type="button" onclick="document.getElementById('foto-siswa').click()" class="w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-left text-gray-500">
+                📷 Upload Foto Siswa
+              </button>
+              <div id="foto-preview" class="hidden mt-2">
+                <img id="preview-img" class="w-16 h-16 rounded-full object-cover mx-auto">
+                <button type="button" onclick="removeFotoPreview()" class="text-red-500 text-sm mt-1 block mx-auto">Hapus</button>
+              </div>
+            </div>
+            <button type="submit" class="md:col-span-3 bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700 transition-colors font-semibold" data-editable="buttons.tambahSiswa">
+              Tambah Siswa
+            </button>
+          </form>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg card overflow-hidden">
+          <div class="p-6 border-b">
+            <h2 class="text-xl font-semibold">Daftar Siswa</h2>
+          </div>
+          <div class="overflow-x-auto table-responsive">
+            <table id="siswa-table" class="w-full">
+              <thead class="bg-indigo-900 text-white">
+                <tr>
+                  <th class="p-4 text-left">Foto</th>
+                  <th class="p-4 text-left">Nama</th>
+                  <th class="p-4 text-left">Kelas</th>
+                  <th class="p-4 text-left">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="siswa-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- QR Code Siswa -->
+    <section id="qr-siswa" class="hidden section-content p-8 ml-64" style="margin: 0; padding: 0.5rem; width: 100%;">
+      <div class="max-w-6xl mx-auto" style="margin: 0; padding: 0; max-width: 100%;">
+        <h1 class="text-4xl font-bold text-gray-800 mb-8" data-editable="sectionTitles.qrSiswa">QR Code Siswa</h1>
+        <div class="mb-4">
+          <button onclick="generateAllQR()" class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors font-semibold" data-editable="buttons.generateQR">
+            📱 Generate Semua QR Code HD
+          </button>
+        </div>
+        <div id="qr-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 qr-grid"></div>
+      </div>
+    </section>
+
+    <!-- Absensi Harian -->
+    <section id="absensi" class="hidden section-content p-8 ml-64" style="margin: 0; padding: 0.5rem; width: 100%;">
+      <div class="max-w-6xl mx-auto" style="margin: 0; padding: 0; max-width: 100%;">
+        <h1 class="text-4xl font-bold text-gray-800 mb-8" data-editable="sectionTitles.absensi">Absensi Harian</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 dashboard-grid">
+          <div class="bg-white p-6 rounded-xl shadow-lg card">
+            <h2 class="text-xl font-semibold mb-4">Scan QR Code / Barcode</h2>
+            <div id="reader" class="w-full max-w-sm mx-auto"></div>
+            <div class="mt-4 text-center">
+              <button onclick="startScanner()" id="start-scan" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold" data-editable="buttons.mulaiScan">
+                Mulai Scan
+              </button>
+              <button onclick="stopScanner()" id="stop-scan" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold hidden" data-editable="buttons.stopScan">
+                Stop Scan
+              </button>
+            </div>
+            <div class="mt-2 text-sm text-gray-600 text-center">
+              Mendukung QR Code dan Barcode
+            </div>
+          </div>
+
+          <div class="bg-white p-6 rounded-xl shadow-lg card">
+            <h2 class="text-xl font-semibold mb-4">Absensi Manual</h2>
+            <select id="manual-siswa" class="w-full p-3 border border-gray-300 rounded-lg mb-4">
+              <option value="">Pilih Siswa</option>
+            </select>
+            <button onclick="absensiManual()" class="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold" data-editable="buttons.tandaiHadir">
+              Tandai Hadir
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-8 bg-white rounded-xl shadow-lg card overflow-hidden">
+          <div class="p-6 border-b">
+            <h2 class="text-xl font-semibold">Rekap Absensi Hari Ini</h2>
+            <p class="text-gray-600" id="tanggal-hari-ini"></p>
+          </div>
+          <div class="overflow-x-auto">
+            <table id="absensi-table" class="w-full">
+              <thead class="bg-indigo-900 text-white">
+                <tr>
+                  <th class="p-4 text-left">Nama</th>
+                  <th class="p-4 text-left">Kelas</th>
+                  <th class="p-4 text-left">Status</th>
+                  <th class="p-4 text-left">Waktu</th>
+                </tr>
+              </thead>
+              <tbody id="absensi-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kontrol Sholat -->
+    <section id="sholat" class="hidden section-content p-8 ml-64" style="margin: 0; padding: 0.5rem; width: 100%;">
+      <div class="max-w-6xl mx-auto" style="margin: 0; padding: 0; max-width: 100%;">
+        <h1 class="text-4xl font-bold text-gray-800 mb-8" data-editable="sectionTitles.sholat">Kontrol Sholat 5 Waktu</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 dashboard-grid">
+          <div class="bg-white p-6 rounded-xl shadow-lg card">
+            <h2 class="text-xl font-semibold mb-4">Scan Barcode Sholat</h2>
+            <div id="prayer-reader" class="w-full max-w-sm mx-auto"></div>
+            <div class="mt-4 text-center">
+              <button onclick="startPrayerScanner()" id="start-prayer-scan" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                🕌 Mulai Scan Sholat
+              </button>
+              <button onclick="stopPrayerScanner()" id="stop-prayer-scan" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold hidden">
+                Stop Scan
+              </button>
+            </div>
+            <div class="mt-2 text-sm text-gray-600 text-center">
+              Scan barcode untuk kontrol sholat siswa
+            </div>
+          </div>
+
+          <div class="bg-white p-6 rounded-xl shadow-lg card">
+            <h2 class="text-xl font-semibold mb-4">Kontrol Manual Sholat</h2>
+            <select id="manual-prayer-siswa" class="w-full p-3 border border-gray-300 rounded-lg mb-4">
+              <option value="">Pilih Siswa</option>
+            </select>
+            <select id="prayer-type" class="w-full p-3 border border-gray-300 rounded-lg mb-4">
+              <option value="">Pilih Waktu Sholat</option>
+              <option value="subuh">Subuh</option>
+              <option value="dzuhur">Dzuhur</option>
+              <option value="ashar">Ashar</option>
+              <option value="maghrib">Maghrib</option>
+              <option value="isya">Isya</option>
+            </select>
+            <button onclick="markPrayerManual()" class="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+              ✅ Tandai Sudah Sholat
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-8 bg-white rounded-xl shadow-lg card overflow-hidden">
+          <div class="p-6 border-b">
+            <h2 class="text-xl font-semibold">Rekap Sholat Hari Ini</h2>
+            <p class="text-gray-600" id="prayer-date-today"></p>
+          </div>
+          <div class="overflow-x-auto">
+            <table id="prayer-table" class="w-full">
+              <thead class="bg-green-900 text-white">
+                <tr>
+                  <th class="p-4 text-left">Nama</th>
+                  <th class="p-4 text-left">Subuh</th>
+                  <th class="p-4 text-left">Dzuhur</th>
+                  <th class="p-4 text-left">Ashar</th>
+                  <th class="p-4 text-left">Maghrib</th>
+                  <th class="p-4 text-left">Isya</th>
+                  <th class="p-4 text-left">Total</th>
+                </tr>
+              </thead>
+              <tbody id="prayer-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="hidden section-content p-8 ml-64" style="margin: 0; padding: 0.5rem; width: 100%;">
+      <div class="max-w-6xl mx-auto" style="margin: 0; padding: 0; max-width: 100%;">
+        <h1 class="text-4xl font-bold text-gray-800 mb-8" data-editable="sectionTitles.dashboard">Dashboard Analytics</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 dashboard-grid">
+          <div class="bg-white p-6 rounded-xl shadow-lg card">
+            <h2 class="text-xl font-semibold mb-4">Statistik Kehadiran</h2>
+            <canvas id="attendanceChart" width="400" height="200"></canvas>
+          </div>
+          
+          <div class="bg-white p-6 rounded-xl shadow-lg card">
+            <h2 class="text-xl font-semibold mb-4">Trend Mingguan</h2>
+            <canvas id="weeklyChart" width="400" height="200"></canvas>
+          </div>
+        </div>
+
+        <div class="mt-8 bg-white p-6 rounded-xl shadow-lg card">
+          <h2 class="text-xl font-semibold mb-4">Rekap Bulanan</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-indigo-900 text-white">
+                <tr>
+                  <th class="p-4 text-left">Nama</th>
+                  <th class="p-4 text-left">Total Hadir</th>
+                  <th class="p-4 text-left">Total Tidak Hadir</th>
+                  <th class="p-4 text-left">Persentase</th>
+                </tr>
+              </thead>
+              <tbody id="monthly-recap"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Prayer Selection Modal -->
+  <div id="prayer-modal" class="crop-modal hidden">
+    <div class="crop-container">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent mb-2">
+          🕌 Pilih Waktu Sholat
+        </h2>
+        <p class="text-gray-600" id="prayer-student-info">Pilih waktu sholat untuk siswa</p>
+      </div>
+      
+      <div class="grid grid-cols-1 gap-3 mb-6">
+        <button class="prayer-select-btn" data-prayer="subuh">
+          <span class="text-2xl mr-3">🌅</span>
+          <span class="font-semibold">Subuh</span>
+        </button>
+        <button class="prayer-select-btn" data-prayer="dzuhur">
+          <span class="text-2xl mr-3">☀️</span>
+          <span class="font-semibold">Dzuhur</span>
+        </button>
+        <button class="prayer-select-btn" data-prayer="ashar">
+          <span class="text-2xl mr-3">🌤️</span>
+          <span class="font-semibold">Ashar</span>
+        </button>
+        <button class="prayer-select-btn" data-prayer="maghrib">
+          <span class="text-2xl mr-3">🌅</span>
+          <span class="font-semibold">Maghrib</span>
+        </button>
+        <button class="prayer-select-btn" data-prayer="isya">
+          <span class="text-2xl mr-3">🌙</span>
+          <span class="font-semibold">Isya</span>
+        </button>
+      </div>
+      
+      <div class="crop-actions">
+        <button class="crop-btn crop-btn-cancel" onclick="closePrayerModal()">
+          ❌ Batal
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Crop Modal -->
+  <div id="crop-modal" class="crop-modal hidden">
+    <div class="crop-container">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+          ✂️ Potong & Atur Foto
+        </h2>
+        <p class="text-gray-600">Pilih area foto yang ingin digunakan dan atur rasio sesuai kebutuhan</p>
+      </div>
+      
+      <div class="crop-controls">
+        <span class="text-sm font-medium text-gray-700">Rasio Aspek:</span>
+        <button class="aspect-ratio-btn active" data-ratio="free">🔄 Bebas</button>
+        <button class="aspect-ratio-btn" data-ratio="1">⬜ 1:1 (Persegi)</button>
+        <button class="aspect-ratio-btn" data-ratio="1.33">📱 4:3 (Portrait)</button>
+        <button class="aspect-ratio-btn" data-ratio="0.75">🖼️ 3:4 (Landscape)</button>
+        <button class="aspect-ratio-btn" data-ratio="1.77">📺 16:9 (Widescreen)</button>
+      </div>
+      
+      <div class="crop-image-container">
+        <img id="crop-image" style="max-width: 100%;">
+      </div>
+      
+      <div class="crop-actions">
+        <button class="crop-btn crop-btn-cancel" onclick="closeCropModal()">
+          ❌ Batal
+        </button>
+        <button class="crop-btn crop-btn-apply" onclick="applyCrop()">
+          ✅ Terapkan Crop
+        </button>
+      </div>
+    </div>
+  </div>
+
+  
+</body>
+</html>
